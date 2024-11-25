@@ -116,17 +116,7 @@ errno_t replace_words_in_log(const char* filename, char* initial_content, char* 
 
 		strcpy_s(input_index, MAX_SIZE, replaced_content);
 
-		char tem_sub_index[MAX_SIZE] = { 0 };
-
-		strcpy_s(tem_sub_index, MAX_SIZE, replaced_content);
-
-		memset(tem_sub_index, " ", replace_len);
-
-		printf("teeeee%s", input_index);
-
-		input_index[strlen(input_index)] = '\r';
-
-		input_index[strlen(input_index) + 1] = '\n';
+		strcat_s(input_index, MAX_SIZE, "\r\n");
 
 		int32_t index = fputs(input_index, stream);
 
