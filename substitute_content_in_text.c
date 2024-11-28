@@ -45,6 +45,8 @@ int main(void)
 
 	errno_t err = replace_specially_words(filename, old_content, replaced_content);
 
+	char err_msg[MAX_SIZE] = { 0 };
+
 	if (errno)
 	{
 		perror("mistake occured");
@@ -87,12 +89,9 @@ errno_t replace_specially_words(const char* filename, char old_content[MAX_SIZE]
 
 		is_found = strcmp(buffer, old_content);
 
-		printf("%d\n", is_found);
-
 		if (!is_found)
 		{
 			new_pos = ftell(stream) - strlen(buffer) - 2;
-			printf("%d", new_pos);
 			break;
 		}
 	}
@@ -135,7 +134,7 @@ errno_t replace_specially_words(const char* filename, char old_content[MAX_SIZE]
 
 				for (size_t index = 0; index < diff; index++)
 				{
-					fputc(" ", stream);
+					fputc(' ', stream);
 				}
 			}
 			else if (strlen(replaced_content) > strlen(old_content))
@@ -154,7 +153,7 @@ errno_t replace_specially_words(const char* filename, char old_content[MAX_SIZE]
 
 				fwrite(sub_content, sizeof(char), strlen(sub_content), stream);
 
-				fputs("\r\n", stream);
+				fputc('\n', stream);
 
 				fputs(end_content, stream);
 			}
@@ -163,5 +162,11 @@ errno_t replace_specially_words(const char* filename, char old_content[MAX_SIZE]
 				fwrite(sub_content, sizeof(char), strlen(sub_content), stream);
 			}
 		}
+	}
+	else
+	{
+		errno = EIO;
+		perror("not find the sentence u point");
+		exit(EXIT_FAILURE);
 	}
 }
