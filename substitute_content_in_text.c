@@ -5,6 +5,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stddef.h>
+#include <windows.h>
 
 #define MAX_SIZE 256
 
