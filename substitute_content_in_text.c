@@ -7,167 +7,87 @@
 #include <stddef.h>
 #include <windows.h>
 
-#define MAX_SIZE 256
+#define BUFFER_SIZE 256
 
-errno_t replace_specially_words(const char* filename, char old_content[MAX_SIZE], char replaced_content[MAX_SIZE]);
+errno_t update_log_record_s(const char* filename, char* search_str, char* replace_str);
 
 int main(void)
 {
-	errno = 0;
-
-	char old_content[MAX_SIZE] = { 0 };
-	char replaced_content[MAX_SIZE] = { 0 };
-
-	puts("plz input the sentence u want to be replaced!");
-
-	int32_t check_first_scanf = scanf_s("%99[^\n]", old_content, (unsigned int)sizeof(old_content));
-
-	if (check_first_scanf < 0)
-	{
-		perror("the first scanf_s error");
-		exit(EXIT_FAILURE);
+	const char* log_file = "C:\\Users\\H\\Desktop\\编程用.txt";
+	const char* search_str = "thx";
+	const char* replace_str = "welcome";
+	errno_t result = update_log_record_s(log_file, search_str,
+		replace_str);
+	if (result != 0) {
+		char error_msg[256];
+		strerror_s(error_msg, sizeof(error_msg), result);
+		fprintf(stderr, "An error occurred: %s\n", error_msg);
 	}
-
-	(void)getchar();
-
-	puts("plz enter the sentence u want to substitute!");
-
-	int32_t check_second_scanf = scanf_s("%99[^\n]", replaced_content, (unsigned int)sizeof(replaced_content));
-
-	if (check_second_scanf < 0)
-	{
-		perror("the second scanf_s error");
-		exit(EXIT_FAILURE);
+	else {
+		printf("Record updated successfully.\n");
 	}
+	_fcloseall();
 
-	const char* filename = "C:\\Users\\H\\Desktop\\编程222用.txt";
-
-	(void)getchar();
-
-	errno_t err = replace_specially_words(filename, old_content, replaced_content);
-
-	char err_msg[MAX_SIZE] = { 0 };
-
-	if (errno)
-	{
-		perror("mistake occured");
-		exit(EXIT_FAILURE);
-	}
-	else
-	{
-		puts("No error happened!");
-	}
-
-	int32_t if_fcloseall = _fcloseall();
-
-	exit(if_fcloseall == EOF ? EXIT_FAILURE : EXIT_SUCCESS);
+	return 0;
 }
 
 
-errno_t replace_specially_words(const char* filename, char old_content[MAX_SIZE], char replaced_content[MAX_SIZE])
+
+
+errno_t update_log_record_s(const char* filename, char* search_str, char* replace_str)
 {
-	FILE* stream = NULL;
-
-	errno_t if_open = fopen_s(&stream, filename, "r+");
-
-	if (if_open)
+	if (filename == NULL ||search_str == NULL || replace_str == NULL)
 	{
-		perror("there is some mistakes while opening the target file");
+		return EINVAL; // 返回无效参数错误
+	}
+	FILE* file_ptr = NULL;
+	errno_t err = fopen_s(&file_ptr, filename, "r+");
+
+	if (err != 0 || file_ptr == NULL) {
+		char error_msg[256];
+		strerror_s(error_msg, sizeof(error_msg), errno);
+		fprintf(stderr, "faile open : %s\n", error_msg);
 		exit(EXIT_FAILURE);
 	}
-
-	char buffer[MAX_SIZE] = { 0 };
-
-	int32_t is_found = 1;
-
-	long pos = 0;
-
-	long new_pos = 0;
-
-	while (fgets(buffer, MAX_SIZE, stream) != NULL)
+	char buffer[BUFFER_SIZE];
+	long position = 0;
+	int found = 0;
+	while (fgets(buffer, BUFFER_SIZE, file_ptr) != NULL)
 	{
-		buffer[strcspn(buffer, "\n")] = '\0';
-
-		is_found = strcmp(buffer, old_content);
-
-		if (!is_found)
-		{
-			new_pos = ftell(stream) - strlen(buffer) - 2;
-			break;
+		if (strstr(buffer, search_str) != NULL) {
+			found = 1;
+				position = ftell(file_ptr) - (long)strlen(buffer) - 1;
+			break; // 找到第一个匹配项之后，立刻停止
 		}
-	}
-
-	if (!is_found)
-	{
-		rewind(stream);
-
-		char temporary_index[MAX_SIZE] = { 0 };
-
-		fread(temporary_index, sizeof(char), MAX_SIZE, stream);
-
-		char* target_in_console = strstr(temporary_index, old_content);
-
-		if (target_in_console != NULL)
-		{
-			ptrdiff_t pos_before_target = target_in_console - temporary_index;
-
-			char before_content[MAX_SIZE] = { 0 };
-
-			strncpy_s(before_content, MAX_SIZE, temporary_index, (rsize_t)pos_before_target);
-
-			rewind(stream);
-
-			size_t actual_len = strlen(before_content);
-
-			fwrite(before_content, sizeof(char), actual_len, stream);
-
-			pos = ftell(stream) + (long)strlen(buffer) + 2;
-
-			char sub_content[MAX_SIZE] = { 0 };
-
-			strcpy_s(sub_content, strlen(replaced_content) + 1, replaced_content);
-
-			if (strlen(replaced_content) < strlen(old_content))
-			{
-				size_t diff = strlen(old_content) - strlen(replaced_content);
-
-				fwrite(sub_content, sizeof(char), strlen(sub_content), stream);
-
-				for (size_t index = 0; index < diff; index++)
-				{
-					fputc(' ', stream);
-				}
-			}
-			else if (strlen(replaced_content) > strlen(old_content))
-			{
-				fseek(stream, 0, SEEK_END);
-
-				long end_pos = ftell(stream);
-
-				fseek(stream, pos, SEEK_SET);
-
-				char end_content[MAX_SIZE] = { 0 };
-
-				fread(end_content, sizeof(char), (size_t)(end_pos - pos), stream);
-
-				fseek(stream, new_pos, SEEK_SET);
-
-				fwrite(sub_content, sizeof(char), strlen(sub_content), stream);
-
-				fputc('\n', stream);
-
-				fputs(end_content, stream);
-			}
-			else
-			{
-				fwrite(sub_content, sizeof(char), strlen(sub_content), stream);
-			}
-		}
-	}
-	else
-	{
-		errno = EIO;
-		perror("not find the sentence u point");
-		exit(EXIT_FAILURE);
-	}
 }
+	if (found) {
+		fseek(file_ptr, position, SEEK_SET);
+			size_t replace_len = strlen(replace_str);
+		size_t search_len = strlen(search_str);
+		if (replace_len > BUFFER_SIZE - 1 || search_len >
+			BUFFER_SIZE - 1) {
+			fclose(file_ptr);
+			return ERANGE; // 返回错误码，表示字符串长度超出范围
+		}
+		// 写入新记录之前，清除所在位置的行数据
+		memset(buffer,' ',strlen(buffer) - 1); // 用空格填充，保持文
+		
+			buffer[strlen(buffer) - 1] = '\n'; // 保留换行符
+		fseek(file_ptr,position, SEEK_SET);
+		//重新回到标记行的开始
+		fputs(buffer, file_ptr);
+		; // 清除原来行的内容
+		fseek(file_ptr, position, SEEK_SET);//重新回到标记行的开始
+		int result = fputs(replace_str, file_ptr); // 写入替换的字符
+			if (result == EOF) {
+				fclose(file_ptr);
+				return errno;
+			}
+	}
+	else {
+		fclose(file_ptr);
+		return ENOENT; // 返回未找到的匹配项
+	}
+		fclose(file_ptr);
+		return 0;
+	}
